@@ -93,19 +93,6 @@ async function start() {
     console.log('Database connected');
 
     startCleanupJob();
-// Serve frontend files
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-
-  await app.register(fastifyStatic, {
-    root: path.join(__dirname, '../../web/dist'),
-    wildcard: false,
-  });
-
-  // This is the "Magic" fallback that fixes the blank receiver page
-  app.setNotFoundHandler(async (request, reply) => {
-    return reply.sendFile('index.html');
-  })
     const port = parseInt(process.env.PORT || '3001');
     await app.listen({ port, host: '0.0.0.0' });
     console.log(`API server running on port ${port}`);
