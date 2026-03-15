@@ -1,10 +1,10 @@
 {
-  "name": "@que/types",
+  "name": "@justvibes/types",
   "version": "1.0.0",
   "type": "module",
   "main": "index.ts",
   "types": "index.ts",
   "scripts": {
-    "build": "echo 'Done'"
+    "build": "echo 'types: no build needed'"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@que/api",
+  "name": "@justvibes/api",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -18,7 +18,7 @@
     "fastify": "^5.2.0",
     "ioredis": "^5.4.2",
     "nanoid": "^5.0.9",
-    "@que/types": "*"
+    "@justvibes/types": "*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
