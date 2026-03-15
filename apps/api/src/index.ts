@@ -12,8 +12,8 @@ import { prisma } from './lib/prisma.js';
 import { redis, checkRedisHealth } from './lib/redis.js';
 import { authRoutes } from './routes/auth.js';
 import { spotifyRoutes } from './routes/spotify.js';
-import { vibeRoutes } from './routes/vibes.js';
-import { RECEIVER_HTML } from './routes/receiver.js';
+import { queRoutes } from './routes/que.js';
+import { receiverRoutes } from './routes/receiver.js';
 import { startCleanupJob } from './jobs/cleanup.js';
 
 const app = Fastify({ logger: true });
@@ -40,14 +40,8 @@ await app.register(rateLimit, {
 // Routes
 await app.register(authRoutes);
 await app.register(spotifyRoutes);
-await app.register(vibeRoutes);
-
-// Receiver route — registered DIRECTLY on app, not through a plugin
-app.get('/v/:id', async (_request, reply) => {
-  reply.header('Content-Type', 'text/html');
-  reply.header('Cache-Control', 'no-cache');
-  return reply.send(RECEIVER_HTML);
-});
+await app.register(queRoutes);
+await app.register(receiverRoutes);
 
 // Rate limit overrides for specific routes
 app.addHook('onRoute', (routeOptions) => {
@@ -73,24 +67,14 @@ if (fs.existsSync(webDistPath)) {
     wildcard: false,
   });
 
-  // SPA fallback — but NEVER for /v/ paths (receiver) or API paths
+  // SPA fallback — serve index.html for unmatched frontend routes only
   app.setNotFoundHandler(async (request, reply) => {
     const url = request.url;
-
-    // Receiver fallback — if somehow the direct route didn't catch it
-    if (url.startsWith('/v/')) {
-      reply.header('Content-Type', 'text/html');
-      reply.header('Cache-Control', 'no-cache');
-      return reply.send(RECEIVER_HTML);
-    }
-
-    // API routes should 404, not serve the SPA
-    if (url.startsWith('/vibes/') || url.startsWith('/auth/') ||
+    // Don't serve SPA for API routes or receiver paths
+    if (url.startsWith('/v/') || url.startsWith('/vibes/') || url.startsWith('/auth/') ||
         url.startsWith('/spotify/') || url.startsWith('/health')) {
       return reply.status(404).send({ error: 'Not found' });
     }
-
-    // Everything else: serve React SPA
     return reply.sendFile('index.html');
   });
 }
@@ -118,7 +102,7 @@ async function start() {
 
     const port = parseInt(process.env.PORT || '3001');
     await app.listen({ port, host: '0.0.0.0' });
-    console.log(`API server running on port ${port}`);
+    console.log(`Que API server running on port ${port}`);
   } catch (err) {
     console.error('Failed to start:', err);
     process.exit(1);

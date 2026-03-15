@@ -5,10 +5,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
 }
 
-model VibeToken {
+model QueToken {
   id                String    @id
   trackId           String
   trackTitle        String
@@ -28,6 +27,7 @@ model VibeToken {
   revealedAt        DateTime?
 
   @@index([expiresAt])
+  @@map("que_tokens")
 }
 
 model Session {
@@ -41,4 +41,5 @@ model Session {
   createdAt           DateTime @default(now())
 
   @@index([expiresAt])
+  @@map("sessions")
 }

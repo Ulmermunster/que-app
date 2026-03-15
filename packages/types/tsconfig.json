@@ -8,9 +8,7 @@
     "skipLibCheck": true,
     "composite": true,
     "declaration": true,
-    "declarationMap": true,
-    "outDir": "dist",
-    "rootDir": "."
+    "declarationMap": true
   },
-  "include": ["./**/*.ts"]
+  "include": ["index.ts"]
 }
