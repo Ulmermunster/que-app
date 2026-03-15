@@ -1,14 +1,18 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
 import { env } from './config.js';
 import { prisma } from './lib/prisma.js';
 import { redis, checkRedisHealth } from './lib/redis.js';
 import { authRoutes } from './routes/auth.js';
 import { spotifyRoutes } from './routes/spotify.js';
-import { queRoutes } from './routes/que.js';
+import { vibeRoutes } from './routes/vibes.js';
 import { receiverRoutes } from './routes/receiver.js';
 import { startCleanupJob } from './jobs/cleanup.js';
 
@@ -36,7 +40,7 @@ await app.register(rateLimit, {
 // Routes
 await app.register(authRoutes);
 await app.register(spotifyRoutes);
-await app.register(queRoutes);
+await app.register(vibeRoutes);
 await app.register(receiverRoutes);
 
 // Rate limit overrides for specific routes
@@ -51,6 +55,23 @@ app.addHook('onRoute', (routeOptions) => {
 
 // Health check
 app.get('/health', async () => ({ status: 'ok' }));
+
+// Serve frontend in production
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const webDistPath = path.resolve(__dirname, '../../web/dist');
+
+if (fs.existsSync(webDistPath)) {
+  await app.register(fastifyStatic, {
+    root: webDistPath,
+    prefix: '/',
+    wildcard: false,
+  });
+
+  // SPA fallback — serve index.html for unmatched routes
+  app.setNotFoundHandler(async (_request, reply) => {
+    return reply.sendFile('index.html');
+  });
+}
 
 // Graceful shutdown
 const shutdown = async () => {
@@ -75,7 +96,7 @@ async function start() {
 
     const port = parseInt(process.env.PORT || '3001');
     await app.listen({ port, host: '0.0.0.0' });
-    console.log(`Que API server running on port ${port}`);
+    console.log(`API server running on port ${port}`);
   } catch (err) {
     console.error('Failed to start:', err);
     process.exit(1);
