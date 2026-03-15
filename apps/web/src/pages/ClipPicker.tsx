@@ -1,10 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import ModeToggle from '../components/ModeToggle';
-import WaveformPicker from '../components/WaveformPicker';
 import { api } from '../lib/api';
 import { openSms, copyLink } from '../lib/sms';
-import { initSpotifyPlayer, playTrack, pauseTrack, destroyPlayer } from '../lib/spotifyPlayer';
 
 function formatDuration(ms: number) {
   const min = Math.floor(ms / 60000);
@@ -12,64 +9,16 @@ function formatDuration(ms: number) {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-function formatTime(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 export default function ClipPicker() {
   const location = useLocation();
   const navigate = useNavigate();
   const track = (location.state as any)?.track;
-  const [mode, setMode] = useState<'AUTO' | 'PICK'>('AUTO');
-  const [startSec, setStartSec] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [vibeId, setVibeId] = useState('');
   const [senderName, setSenderName] = useState('');
-  const [recipientName, setRecipientName] = useState('');
   const [error, setError] = useState('');
-  const [previewing, setPreviewing] = useState(false);
-  const [premiumError, setPremiumError] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    api.getMe().then((u) => {
-      setUser(u);
-      setSenderName(u.displayName || '');
-    }).catch(() => {});
-    return () => destroyPlayer();
-  }, []);
-
-  const handleWindowChange = useCallback((sec: number) => {
-    setStartSec(sec);
-  }, []);
-
-  const handlePreview = async () => {
-    if (!user?.accessToken) return;
-    try {
-      if (previewing) {
-        await pauseTrack();
-        setPreviewing(false);
-        return;
-      }
-      await initSpotifyPlayer(user.accessToken);
-      await playTrack(`spotify:track:${track.spotifyId}`, user.accessToken, startSec * 1000);
-      setPreviewing(true);
-      setTimeout(async () => {
-        await pauseTrack();
-        setPreviewing(false);
-      }, 30000);
-    } catch (err: any) {
-      if (err.message?.includes('Premium') || err.message?.includes('NOT_PREMIUM')) {
-        setPremiumError(true);
-      } else {
-        console.error('Preview error:', err);
-      }
-    }
-  };
 
   const handleGenerate = async () => {
     if (!track) return;
@@ -78,8 +27,8 @@ export default function ClipPicker() {
     try {
       const result = await api.createVibe({
         trackId: track.spotifyId,
-        mode,
-        startSec: mode === 'PICK' ? startSec : undefined,
+        mode: 'AUTO',
+        senderDisplayName: senderName || undefined,
       });
       setVibeId(result.vibeId);
       setSent(true);
@@ -95,12 +44,12 @@ export default function ClipPicker() {
   };
 
   const handleSms = () => {
-    const displayName = senderName || user?.displayName || 'Someone';
+    const displayName = senderName || 'Someone';
     openSms(displayName, vibeId, window.location.origin);
   };
 
   const handleCopy = async () => {
-    const displayName = senderName || user?.displayName || 'Someone';
+    const displayName = senderName || 'Someone';
     await copyLink(displayName, vibeId, window.location.origin);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -192,7 +141,7 @@ export default function ClipPicker() {
     );
   }
 
-  // Track selection + clip picker screen
+  // Track confirmation screen
   return (
     <div className="w-full max-w-md mx-auto px-5 flex flex-col" style={{ minHeight: '100dvh', paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
       <div className="flex items-center gap-4 py-2">
@@ -215,53 +164,23 @@ export default function ClipPicker() {
         </div>
       </div>
 
-      {/* Mode toggle */}
-      <div className="mt-5">
-        <ModeToggle mode={mode} onModeChange={setMode} hasPreview={track.hasPreview} />
+      {/* Auto mode info */}
+      <div className="card p-4 border-mint/30 mt-5">
+        <p className="text-sm text-ink">
+          <span className="font-semibold text-mint">Auto clip</span> — sends the best
+          30-second preview (usually the chorus). Your friend listens blind and reacts.
+        </p>
       </div>
-
-      {/* Auto mode callout */}
-      {mode === 'AUTO' && (
-        <div className="card p-4 border-mint/30 mt-4">
-          <p className="text-sm text-ink">
-            <span className="font-semibold text-mint">Auto mode</span> — Spotify picks the best
-            30-second preview clip (usually the chorus).
-          </p>
-        </div>
-      )}
-
-      {/* Pick mode waveform */}
-      {mode === 'PICK' && (
-        <div className="space-y-4 mt-4">
-          <WaveformPicker durationMs={track.duration} onWindowChange={handleWindowChange} />
-
-          <button
-            onClick={handlePreview}
-            className="w-full card p-3 text-center text-sm font-semibold text-gold hover:bg-gold/5 transition-colors min-h-[44px]"
-          >
-            {previewing ? '⏸ Pause preview' : `▶ Preview ${formatTime(startSec)}–${formatTime(startSec + 30)}`}
-          </button>
-
-          {premiumError && (
-            <div className="card p-4 border-gold/30">
-              <p className="text-sm text-ink">
-                <span className="font-semibold text-gold">Spotify Premium needed to preview.</span>{' '}
-                Your friend will still hear the clip!
-              </p>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="flex-1" />
 
-      {/* Recipient name input */}
+      {/* Sender name input */}
       <div className="relative mt-5">
         <input
           type="text"
-          value={recipientName}
-          onChange={(e) => setRecipientName(e.target.value)}
-          placeholder="Recipient name (optional)"
+          value={senderName}
+          onChange={(e) => setSenderName(e.target.value)}
+          placeholder="Your name"
           className="w-full px-4 py-3 rounded-card border-2 border-gold/30 bg-white text-ink placeholder:text-muted text-center font-medium focus:outline-none focus:border-gold min-h-[48px]"
         />
         <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-sky" />
