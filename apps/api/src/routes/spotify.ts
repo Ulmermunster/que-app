@@ -1,19 +1,15 @@
 import { FastifyInstance } from 'fastify';
-import { searchTracks, getTrack, getArtistAlbums, getClientToken } from '../lib/spotify.js';
-import { env } from '../config.js';
-
-async function getAppToken() {
-  return getClientToken(env.SPOTIFY_CLIENT_ID, env.SPOTIFY_CLIENT_SECRET);
-}
+import { requireSession } from '../middleware/session.js';
+import { searchTracks, getTrack, getArtistAlbums, spotifyFetch } from '../lib/spotify.js';
 
 export async function spotifyRoutes(app: FastifyInstance) {
-  // All routes use client credentials — no user login needed
+  app.addHook('preHandler', requireSession);
+
   app.get('/spotify/search', async (request) => {
     const { q, limit } = request.query as { q: string; limit?: string };
     if (!q) return { tracks: [], artists: [] };
 
-    const token = await getAppToken();
-    const data = await searchTracks(q, token, parseInt(limit || '8'));
+    const data = await searchTracks(q, request.session!.accessToken, parseInt(limit || '8'));
 
     const tracks = (data.tracks?.items || []).map((t: any) => ({
       id: t.id,
@@ -41,8 +37,7 @@ export async function spotifyRoutes(app: FastifyInstance) {
 
   app.get('/spotify/track/:id', async (request) => {
     const { id } = request.params as { id: string };
-    const token = await getAppToken();
-    const t = await getTrack(id, token);
+    const t = await getTrack(id, request.session!.accessToken);
     return {
       id: t.id,
       title: t.name,
@@ -59,7 +54,6 @@ export async function spotifyRoutes(app: FastifyInstance) {
 
   app.get('/spotify/artist/:id/albums', async (request) => {
     const { id } = request.params as { id: string };
-    const token = await getAppToken();
-    return getArtistAlbums(id, token);
+    return getArtistAlbums(id, request.session!.accessToken);
   });
 }
