@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DATABASE_URL")
 }
 
-model QueToken {
+model VibeToken {
   id                String    @id
   trackId           String
   trackTitle        String
@@ -28,7 +28,6 @@ model QueToken {
   revealedAt        DateTime?
 
   @@index([expiresAt])
-  @@map("que_tokens")
 }
 
 model Session {
@@ -42,5 +41,4 @@ model Session {
   createdAt           DateTime @default(now())
 
   @@index([expiresAt])
-  @@map("sessions")
 }
