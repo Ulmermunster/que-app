@@ -162,3 +162,4 @@ export async function adminRoutes(app: FastifyInstance) {
         reaction: v.reaction,
         revealed: !!v.revealedAt,
       })),
+};
