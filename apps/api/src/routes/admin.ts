@@ -134,23 +134,23 @@ export async function adminRoutes(app: FastifyInstance) {
       reactions: { vibe: vibeReactions, nope: nopeReactions },
       funnel: { playRate, reactRate, revealRate, vibeRate },
       dailyVolume,
-      topSenders: topSenders.map((s: any) => ({
+      topSenders: topSenders.map((s) => ({
         name: s.senderDisplayName,
         count: s._count.id,
       })),
-      topTracks: topTracks.map((t: any) => ({
+      topTracks: topTracks.map((t) => ({
         title: t.trackTitle,
         artist: t.trackArtist,
         count: t._count.id,
       })),
       locations: locationStats
-        .filter((l: any) => l.senderCity)
-        .map((l: any) => ({
+        .filter((l) => l.senderCity)
+        .map((l) => ({
           city: l.senderCity,
           country: l.senderCountry,
           count: l._count.id,
         })),
-      recentVibes: recentVibes.map((v: any) => ({
+      recentVibes: recentVibes.map((v) => ({
         id: v.id,
         track: `${v.trackTitle} — ${v.trackArtist}`,
         mode: v.mode,
