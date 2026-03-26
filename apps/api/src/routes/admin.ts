@@ -152,7 +152,7 @@ export async function adminRoutes(app: FastifyInstance) {
         })),
       recentVibes: recentVibes.map((v: any) => ({
         id: v.id,
-        track: `${v.trackTitle} - ${v.trackArtist}`,
+        track: `${v.trackTitle} — ${v.trackArtist}`,
         mode: v.mode,
         sender: v.senderDisplayName,
         senderLocation: [v.senderCity, v.senderCountry].filter(Boolean).join(', ') || null,
@@ -162,4 +162,6 @@ export async function adminRoutes(app: FastifyInstance) {
         reaction: v.reaction,
         revealed: !!v.revealedAt,
       })),
-};
+    };
+  });
+}
