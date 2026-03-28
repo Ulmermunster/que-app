@@ -1,14 +1,14 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
-function requireAdmin(request: any, reply: any, done: () => void) {
+function requireAdmin(request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) {
   if (!ADMIN_SECRET) {
     reply.status(503).send({ error: 'Admin not configured' });
     return;
   }
-  const auth = request.headers['x-admin-secret'] || request.query?.secret;
+  const auth = request.headers['x-admin-secret'] || (request.query as Record<string, string>)?.secret;
   if (auth !== ADMIN_SECRET) {
     reply.status(401).send({ error: 'Unauthorized' });
     return;
@@ -20,7 +20,8 @@ export async function adminRoutes(app: FastifyInstance) {
   app.addHook('preHandler', requireAdmin);
 
   // Dashboard stats
-  app.get('/admin/stats', async () => {
+  app.get('/admin/stats', async (_request, reply) => {
+    try {
     const now = new Date();
 
     const [
@@ -167,5 +168,9 @@ export async function adminRoutes(app: FastifyInstance) {
         revealed: !!v.revealedAt,
       })),
     };
+    } catch (err: any) {
+      reply.log.error(err, 'Admin stats failed');
+      return reply.status(500).send({ error: 'Failed to load stats' });
+    }
   });
 }
