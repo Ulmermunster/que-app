@@ -371,7 +371,26 @@ export async function generateDecoys(
     }
   }
 
-  throw new Error(`generateDecoys: all steps exhausted for artist ${artistId}`);
+  // ─── Step 4: Last resort — related artists, zero popularity filter ───────
+  // At this point Steps 1-3 found no 3-artist cluster that fits the popularity band.
+  // Rather than throw (which makes the frontend fall back to hardcoded superstars),
+  // grab whatever related artists Spotify has and return up to 3 of them raw.
+  // Any real related artist is better than a hardcoded global superstar.
+  try {
+    const related = await getRelatedArtists(artistId, accessToken);
+    const pool = shuffle(related.filter(a => isNotReal(a.name)));
+    if (pool.length > 0) {
+      const picked = pool.slice(0, 3).map(a => a.name);
+      console.log('[generateDecoys] Step 4 (last resort, no pop filter):', picked);
+      return picked;
+    }
+  } catch (err: any) {
+    console.error('[generateDecoys] Step 4 failed:', err.message);
+  }
+
+  // Completely unable to find any decoys — return empty, frontend shows fewer choices
+  console.error(`[generateDecoys] All steps exhausted for artist ${artistId}, returning []`);
+  return [];
 }
 
 export async function getArtistAlbums(artistId: string, accessToken: string) {
