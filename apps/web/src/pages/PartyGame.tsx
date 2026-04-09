@@ -111,7 +111,7 @@ export default function PartyGame() {
     stopAudio();
 
     try {
-      const t = await api.getRandomTrack(genre || undefined);
+      const t = await api.getRandomTrack(genre || undefined, true);
       setTrack(t);
 
       // Build exactly 4 choices — correct artist is always guaranteed present
