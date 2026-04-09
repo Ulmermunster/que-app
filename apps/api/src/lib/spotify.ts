@@ -156,7 +156,7 @@ export async function getRelatedArtists(artistId: string, accessToken: string): 
   const data: any = await spotifyFetch(`/artists/${artistId}/related-artists`, accessToken);
   const artists: any[] = data.artists || [];
   // Return all related artists — no popularity sort so we don't always get superstars
-  const result: ArtistStub[] = artists.map((a: any) => ({ name: a.name, popularity: a.popularity ?? 50 }));
+  const result: ArtistStub[] = artists.map((a: any) => ({ name: a.name, popularity: a.popularity || 50 }));
   cacheSet(cacheKey, result);
   return result;
 }
@@ -166,7 +166,7 @@ export async function getArtist(artistId: string, accessToken: string): Promise<
   const cached = cacheGet<{ name: string; genres: string[]; popularity: number }>(cacheKey);
   if (cached) return cached;
   const data: any = await spotifyFetch(`/artists/${artistId}`, accessToken);
-  const result = { name: data.name, genres: data.genres || [], popularity: data.popularity ?? 50 };
+  const result = { name: data.name, genres: data.genres || [], popularity: data.popularity || 50 };
   cacheSet(cacheKey, result);
   return result;
 }
@@ -209,7 +209,7 @@ async function searchArtistsByTrackSearch(
     for (const artist of (track.artists ?? [])) {
       if (!seen.has(artist.id)) {
         seen.add(artist.id);
-        result.push({ name: artist.name, popularity: trackPop });
+        result.push({ name: artist.name, popularity: trackPop || 50 });
       }
     }
   }
